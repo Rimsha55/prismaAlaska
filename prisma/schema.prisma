@@ -1,0 +1,258 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id @default(uuid())
+  profile        Profile?
+  email          String           @unique
+  user_secret    UserSecret?
+  session        Session[]
+  userOne        Chat[]           @relation("userOne")
+  userTwo        Chat[]           @relation("userTwo")
+  Message        Message[]
+  UserSettings   UserSettings?
+  Subscription   Subscription[]
+  Referral       Referral[]
+  PaymentDetails PaymentDetails[]
+}
+
+model Profile {
+  id                     String                  @id @default(uuid())
+  profileImage           String
+  firstName              String
+  lastName               String
+  age                    Int
+  gender                 String
+  address                String
+  location               String
+  about                  String
+  user                   User                    @relation(fields: [userId], references: [id])
+  userId                 String                  @unique
+  Member                 Member[]
+  ServiceProviderProfile ServiceProviderProfile?
+}
+
+model UserSecret {
+  id       String @id @default(uuid())
+  password String
+  secret   User   @relation(fields: [userId], references: [id]) // references `id` of `Profile`
+  userId   String @unique
+}
+
+model Session {
+  id           String @id @default(uuid())
+  refreshToken String
+  user_session User   @relation(fields: [userId], references: [id])
+  userId       String
+}
+
+model Referral {
+  id           String @id @default(uuid())
+  referralCode String //not confrm
+  referralLink String
+  description  String
+  user         User   @relation(fields: [userId], references: [id])
+  userId       String
+}
+
+model Member {
+  id                     String                   @id @default(uuid())
+  role                   Role
+  profile                Profile                  @relation(fields: [profileId], references: [id])
+  profileId              String
+  skills                 String
+  professionalDocument   String
+  completedJob           Int
+  ratingAndReview        RatingAndReview[]
+  ServiceProviderProfile ServiceProviderProfile[]
+  gigWorkerProfile       gigWorkerProfile[]
+  DisputePayment         DisputePayment[]
+}
+
+model ServiceProviderProfile {
+  id                    String          @id @default(uuid())
+  workerType            WorkerType
+  selectProfession      String
+  companyName           String
+  licenseNumber         String
+  professionalDocuments String
+  accountNumber         String
+  routingNumber         String
+  member                Member          @relation(fields: [memberId], references: [id])
+  memberId              String
+  review                RatingAndReview @relation(fields: [reviewId], references: [id])
+  reviewId              String
+  availablityDate       DateTime
+  avaialableTime        DateTime
+  user                  Profile         @relation(fields: [profileId], references: [id])
+  profileId             String          @unique
+}
+
+model gigWorkerProfile {
+  id              String          @id @default(uuid())
+  idNumber        String
+  insuranceNumber String
+  jobCategory     String
+  availablityDate DateTime
+  avaialableTime  DateTime
+  member          Member          @relation(fields: [memberId], references: [id])
+  memberId        String
+  review          RatingAndReview @relation(fields: [reviewId], references: [id])
+  reviewId        String
+  createdAt       DateTime        @default(now())
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  price     Int
+  details   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+}
+
+model Chat {
+  id        String    @id @default(uuid())
+  userOneId String
+  userTwoId String
+  userOne   User      @relation(fields: [userOneId], references: [id], name: "userOne")
+  userTwo   User      @relation(fields: [userTwoId], references: [id], name: "userTwo")
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
+}
+
+model Message {
+  id        String    @id @default(uuid())
+  message   String
+  chat_msgs Chat      @relation(fields: [chatId], references: [id])
+  chatId    String
+  sender    User      @relation(fields: [senderId], references: [id])
+  senderId  String
+  seen      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model RatingAndReview {
+  id                     String                   @id @default(uuid())
+  comment                String
+  rating                 Float
+  members                Member                   @relation(fields: [memberId], references: [id])
+  memberId               String
+  ServiceProviderProfile ServiceProviderProfile[]
+  gigWorkerProfile       gigWorkerProfile[]
+  createdAt              DateTime                 @default(now())
+}
+
+model helpFeedBack {
+  id        String   @id @default(uuid())
+  subject   String
+  message   String
+  image     String
+  createdAt DateTime @default(now())
+}
+
+model Settings {
+  id              String   @id @default(uuid())
+  privacyPolicy   String
+  termsConditions String
+  aboutApp        String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model UserSettings {
+  id            String   @id @default(uuid())
+  notifications Boolean  @default(true)
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+}
+
+model CreateJob {
+  id             String     @id @default(uuid())
+  workerType     WorkerType @default(SERVICEPROVIDER)
+  jobTitle       String
+  jobCategory    String
+  jobDate        DateTime
+  jobTime        DateTime
+  jobDescription String
+  image          String
+  jobLocation    String
+  jobtype        jobType
+  payType        payType
+  budgetFrom     Int
+  budgetTo       Int
+  status         jobStatus
+  Reason         Reason[]
+  createdAt      DateTime   @default(now())
+}
+
+model Reason {
+  id           String    @id @default(uuid())
+  selectReason String
+  createJob    CreateJob @relation(fields: [jobId], references: [id])
+  jobId        String
+  createdAt    DateTime  @default(now())
+}
+
+model DisputePayment {
+  id        String   @id @default(uuid())
+  dispute   String
+  member    Member   @relation(fields: [memberId], references: [id])
+  memberId  String
+  createdAt DateTime @default(now())
+}
+
+model PaymentDetails {
+  id            String   @id @default(uuid())
+  jobTitle      String
+  jobPosted     String
+  paymentMethod String
+  payAmount     Int
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+}
+
+enum jobType {
+  WORKINGHOURS
+  AFTERHOURS
+}
+
+enum jobStatus {
+  UPCOMING
+  OPEN
+  ONGOING
+  COMPLETED
+}
+
+enum payType {
+  FIXED
+  PAYHOURLY
+}
+
+enum Role {
+  MEMEBERS
+  SERVICEPROVIDER
+  GIGWORKER
+}
+
+enum WorkerType {
+  SERVICEPROVIDER
+  GIGWORKER
+}
